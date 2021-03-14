@@ -61,6 +61,7 @@ function setup() {
 }
 
 function draw() {
+  frameRate(10);
   image(video, 0, 0, width, height);
   square.draw();
   drawKeypoints();
