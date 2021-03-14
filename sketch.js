@@ -23,14 +23,14 @@ let ardY = 0;
 let oldArdX = 0;
 let oldArdY = 0;
 let poseNet;
-var speechRec = new p5.SpeechRec(); // speech recognition object
+let speechRec = new p5.SpeechRec(); // speech recognition object
 speechRec.continuous = false; // allow continuous recognition
 speechRec.interimResults = true; // allow partial recognition (faster, less accurate)
 speechRec.onResult = showResult; // callback function that triggers when speech is recognized
 speechRec.onError = showError; // callback function that triggers when an error occurs
 speechRec.onEnd = onVoiceRecognitionEnd; // callback function that triggers voice recognition ends
 
-var voice = new p5.Speech(); // speech synthesis object
+let voice = new p5.Speech(); // speech synthesis object
 
 function setup() {
   square = new Square();
@@ -145,14 +145,16 @@ function drawKeypoints() {
   strokeWeight(2);
   ellipse(posX, posY, 30, 30);
 
-  if (oldArdX != ardX || oldArdY != ardY) {
-    if (detections.length > 0 && !helloRegistered) {
-      // serial.write(high + ',' + ardX + ',' + ardY + '\n');
-      console.log(high + ',' + ardX + ',' + ardY + '\n');
-      helloRegistered = true;
-    } else {
-      // serial.write(low + ',' + ardX + ',' + ardY + '\n');
-      console.log(low + ',' + ardX + ',' + ardY + '\n');
+  if (oldArdX != ardX || oldArdY != ardY || !helloRegistered) {
+    if (detections.length > 0) {
+      if (!helloRegistered) {
+        // serial.write(high + ',' + ardX + ',' + ardY + '\n');
+        console.log(high + ',' + ardX + ',' + ardY + '\n');
+        helloRegistered = true;
+      } else {
+        // serial.write(low + ',' + ardX + ',' + ardY + '\n');
+        console.log(low + ',' + ardX + ',' + ardY + '\n');
+      }
     }
   }
 }
