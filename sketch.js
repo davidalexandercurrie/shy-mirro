@@ -72,7 +72,7 @@ function onVoiceRecognitionEnd() {
     'Voice recognition ended!!!, The message is ' + speechRec.resultString
   );
   if (speechRec.resultString != undefined) {
-    if (speechRec.resultString == 'hello') {
+    if (speechRec.resultString.includes('hello')) {
       square.rightWord();
       helloRegistered = false;
     } else {
