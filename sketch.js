@@ -3,8 +3,9 @@ let faceapi;
 let detections = [];
 let dx = 0;
 let dy = 0;
-let helloRegistered = true;
+let helloRegistered = false;
 let square;
+let square2;
 let serial;
 let portName = '/dev/tty.usbmodem14641';
 let inData;
@@ -22,7 +23,8 @@ let ardX = 0;
 let ardY = 0;
 let oldArdX = 0;
 let oldArdY = 0;
-let poseNet;
+let poses = [];
+let isPerson = false;
 let speechRec = new p5.SpeechRec(); // speech recognition object
 speechRec.continuous = false; // allow continuous recognition
 speechRec.interimResults = true; // allow partial recognition (faster, less accurate)
@@ -33,20 +35,29 @@ speechRec.onEnd = onVoiceRecognitionEnd; // callback function that triggers voic
 let voice = new p5.Speech(); // speech synthesis object
 
 function setup() {
-  square = new Square();
+  square = new Square(100, 100);
+  square2 = new Square(300, 100);
   createCanvas(640, 480);
 
   video = createCapture(VIDEO);
   video.size(width, height);
-  faceapi = ml5.faceApi(
-    video,
-    {
-      withLandmarks: true,
-      withExpressions: false,
-      withDescriptors: false,
-    },
-    faceReady
-  );
+
+  // const detectionOptions = {
+  //   withLandmarks: true,
+  //   withDescriptors: false,
+  // };
+  // faceapi = ml5.faceApi(video, detectionOptions, faceReady);
+  // Create a new poseNet method
+  const poseNet = ml5.poseNet(video, modelLoaded);
+
+  // When the model is loaded
+  function modelLoaded() {
+    console.log('Model Loaded!');
+  }
+  // Listen to new 'pose' events
+  poseNet.on('pose', function (results) {
+    poses = results;
+  });
   video.hide();
 
   serial = new p5.SerialPort(); // make a new instance of the serialport library
@@ -64,6 +75,7 @@ function draw() {
   frameRate(10);
   image(video, 0, 0, width, height);
   square.draw();
+  square2.draw();
   drawKeypoints();
 }
 
@@ -89,33 +101,32 @@ function listen() {
 }
 
 function showResult() {
-  console.log('Transcript: ' + speechRec.resultString); // log the transcript
-  console.log('Confidence: ' + speechRec.resultConfidence); // log the confidence
+  // console.log('Transcript: ' + speechRec.resultString); // log the transcript
+  // console.log('Confidence: ' + speechRec.resultConfidence); // log the confidence
 }
 
 function showError() {
   console.log('An error occurred!');
 }
 
-function faceReady() {
-  faceapi.detect(gotFaces);
-}
+// function faceReady() {
+//   faceapi.detect(gotFaces);
+// }
 
-function gotFaces(error, result) {
-  if (error) {
-    console.log(error);
-    return;
-  }
-  detections = result;
-  faceapi.detect(gotFaces);
-}
+// function gotFaces(error, result) {
+//   if (error) {
+//     console.log('error' + error);
+//     return;
+//   }
+//   detections = result;
+//   faceapi.detect(gotFaces);
+// }
 
 function serialEvent() {
   // read a byte from the serial port:
   let inByte = serial.read();
   // store it in a global variable:
   inData = inByte;
-  // console.log(inData);
 }
 
 function serialError(err) {
@@ -124,10 +135,16 @@ function serialError(err) {
 
 // A function to draw ellipses over the detected keypoints
 function drawKeypoints() {
-  if (detections.length > 0) {
-    let points = detections[0].landmarks.positions;
-    dx = points[30]._x;
-    dy = points[30]._y;
+  if (poses.length > 0) {
+    if (poses[0].pose.nose != undefined) {
+      square2.rightWord();
+      isPerson = true;
+    }
+    dx = poses[0].pose.nose.x;
+    dy = poses[0].pose.nose.y;
+  } else {
+    isPerson = false;
+    square2.wrongWord();
   }
   oldX = posX;
   oldY = posY;
@@ -146,36 +163,37 @@ function drawKeypoints() {
   strokeWeight(2);
   ellipse(posX, posY, 30, 30);
 
-  if (oldArdX != ardX || oldArdY != ardY || !helloRegistered) {
-    if (detections.length > 0) {
-      if (!helloRegistered) {
-        // serial.write(high + ',' + ardX + ',' + ardY + '\n');
-        console.log(high + ',' + ardX + ',' + ardY + '\n');
-        helloRegistered = true;
-      } else {
-        // serial.write(low + ',' + ardX + ',' + ardY + '\n');
-        console.log(low + ',' + ardX + ',' + ardY + '\n');
-      }
-    }
-  }
+  serial.write(
+    `${isPerson ? high : low},${
+      !helloRegistered ? high : low
+    },${ardX},${ardY}\n`
+  );
+  console.log(
+    `${isPerson ? high : low},${
+      !helloRegistered ? high : low
+    },${ardX},${ardY}\n`
+  );
+  helloRegistered = true;
 }
 
 class Square {
-  constructor() {
-    this.x = width / 2;
-    this.y = height / 2;
+  constructor(w, h) {
+    this.x = w;
+    this.y = h;
+    this.fill = 'white';
   }
 
   draw() {
+    fill(this.fill);
     noStroke();
     rect(this.x, this.y, 40, 40);
   }
 
   rightWord() {
-    fill('green');
+    this.fill = 'green';
   }
 
   wrongWord() {
-    fill('red');
+    this.fill = 'red';
   }
 }
